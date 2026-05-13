@@ -11,6 +11,7 @@ namespace SystemicOverload.Phase1
     {
         private static readonly int SpeedId = Animator.StringToHash("Speed");
         private static readonly int IsGroundedId = Animator.StringToHash("IsGrounded");
+        private static readonly int VerticalVelocityId = Animator.StringToHash("VerticalVelocity");
 
         [SerializeField] private MovementComponent movementComponent;
         [SerializeField] private CharacterController characterController;
@@ -19,6 +20,7 @@ namespace SystemicOverload.Phase1
         private Animator animator;
         private bool hasSpeedParameter;
         private bool hasIsGroundedParameter;
+        private bool hasVerticalVelocityParameter;
 
         private void Awake()
         {
@@ -56,6 +58,11 @@ namespace SystemicOverload.Phase1
             {
                 animator.SetBool(IsGroundedId, characterController.isGrounded);
             }
+
+            if (hasVerticalVelocityParameter && movementComponent != null)
+            {
+                animator.SetFloat(VerticalVelocityId, movementComponent.VerticalVelocity);
+            }
         }
 
         /// <summary>
@@ -81,6 +88,11 @@ namespace SystemicOverload.Phase1
                 if (parameter.type == AnimatorControllerParameterType.Bool && parameter.nameHash == IsGroundedId)
                 {
                     hasIsGroundedParameter = true;
+                }
+
+                if (parameter.type == AnimatorControllerParameterType.Float && parameter.nameHash == VerticalVelocityId)
+                {
+                    hasVerticalVelocityParameter = true;
                 }
             }
         }

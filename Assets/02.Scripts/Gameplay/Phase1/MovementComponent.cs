@@ -30,6 +30,7 @@ namespace SystemicOverload.Phase1
         private float verticalVelocity;
 
         public Vector3 CurrentPlanarVelocity => currentPlanarVelocity;
+        public float VerticalVelocity => verticalVelocity;
 
         /// <summary>
         /// 인스펙터에 설정된 최대 평면 이동 속도입니다. 애니메이션 정규화에 사용합니다.

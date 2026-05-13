@@ -10,12 +10,16 @@ namespace SystemicOverload.Combat
     [RequireComponent(typeof(InputProvider))]
     public sealed class TpsMeleeAttackComponent : MonoBehaviour
     {
+        private const string MeleeTriggerParameterName = "MeleeTrig";
+        private static readonly int MeleeTriggerHash = Animator.StringToHash(MeleeTriggerParameterName);
+
         [SerializeField] private Transform attackPoint;
         [SerializeField] private float attackPointForwardOffset = 1.2f;
         [SerializeField] private float radius = 1.6f;
         [SerializeField] private float damage = 15.0f;
         [SerializeField] private float cooldown = 0.5f;
         [SerializeField] private LayerMask enemyMask = ~0;
+        [SerializeField] private Animator animator;
 
         private readonly HashSet<IDamageable> damagedTargets = new HashSet<IDamageable>();
         private InputProvider inputProvider;
@@ -48,6 +52,7 @@ namespace SystemicOverload.Combat
 
             nextAllowedAttackTime = Time.time + cooldown;
             PerformAttack();
+            TrySetMeleeTrigger();
         }
 
         private void PerformAttack()
@@ -82,6 +87,23 @@ namespace SystemicOverload.Combat
             }
 
             Debug.Log($"근접 공격 피격 수: {hitCount}");
+        }
+
+        private void TrySetMeleeTrigger()
+        {
+            if (animator == null)
+            {
+                return;
+            }
+
+            foreach (AnimatorControllerParameter parameter in animator.parameters)
+            {
+                if (parameter.name == MeleeTriggerParameterName && parameter.type == AnimatorControllerParameterType.Trigger)
+                {
+                    animator.SetTrigger(MeleeTriggerHash);
+                    return;
+                }
+            }
         }
 
         private void EnsureAttackPoint()
