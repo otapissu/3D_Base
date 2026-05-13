@@ -4,23 +4,33 @@ namespace SystemicOverload.Phase1
 {
     /// <summary>
     /// Movement/CharacterController 상태를 Animator 파라미터로 전달합니다. 클립은 Animator Controller에서 배치합니다.
+    /// StarterAssets TPS Controller 파라미터(Grounded, FreeFall, MotionSpeed)와 커스텀 파라미터(IsGrounded, VerticalVelocity) 모두 지원합니다.
     /// </summary>
     [RequireComponent(typeof(Animator))]
     [DefaultExecutionOrder(50)]
     public sealed class LocomotionAnimatorDriver : MonoBehaviour
     {
+        // 커스텀
         private static readonly int SpeedId = Animator.StringToHash("Speed");
         private static readonly int IsGroundedId = Animator.StringToHash("IsGrounded");
         private static readonly int VerticalVelocityId = Animator.StringToHash("VerticalVelocity");
+        // StarterAssets TPS Controller
+        private static readonly int GroundedId = Animator.StringToHash("Grounded");
+        private static readonly int FreeFallId = Animator.StringToHash("FreeFall");
+        private static readonly int MotionSpeedId = Animator.StringToHash("MotionSpeed");
 
         [SerializeField] private MovementComponent movementComponent;
         [SerializeField] private CharacterController characterController;
         [SerializeField] private float speedDampTime = 0.08f;
+        [SerializeField] private float freeFallVelocityThreshold = -1.5f;
 
         private Animator animator;
-        private bool hasSpeedParameter;
-        private bool hasIsGroundedParameter;
-        private bool hasVerticalVelocityParameter;
+        private bool hasSpeed;
+        private bool hasIsGrounded;
+        private bool hasVerticalVelocity;
+        private bool hasGrounded;
+        private bool hasFreeFall;
+        private bool hasMotionSpeed;
 
         private void Awake()
         {
@@ -32,7 +42,6 @@ namespace SystemicOverload.Phase1
 
         private void OnEnable()
         {
-            // 에디터에서 RuntimeAnimatorController를 나중에 할당한 경우에도 파라미터 캐시를 다시 구축합니다.
             CacheParameterAvailability();
         }
 
@@ -48,52 +57,63 @@ namespace SystemicOverload.Phase1
                 return;
             }
 
-            if (hasSpeedParameter && movementComponent != null)
+            float normalizedSpeed = movementComponent != null ? movementComponent.NormalizedPlanarSpeed : 0.0f;
+            bool grounded = characterController != null && characterController.isGrounded;
+            float verticalVelocity = movementComponent != null ? movementComponent.VerticalVelocity : 0.0f;
+
+            if (hasSpeed)
             {
-                float targetSpeed = movementComponent.NormalizedPlanarSpeed;
-                animator.SetFloat(SpeedId, targetSpeed, speedDampTime, Time.deltaTime);
+                animator.SetFloat(SpeedId, normalizedSpeed, speedDampTime, Time.deltaTime);
             }
 
-            if (hasIsGroundedParameter && characterController != null)
+            if (hasIsGrounded)
             {
-                animator.SetBool(IsGroundedId, characterController.isGrounded);
+                animator.SetBool(IsGroundedId, grounded);
             }
 
-            if (hasVerticalVelocityParameter && movementComponent != null)
+            if (hasVerticalVelocity)
             {
-                animator.SetFloat(VerticalVelocityId, movementComponent.VerticalVelocity);
+                animator.SetFloat(VerticalVelocityId, verticalVelocity);
+            }
+
+            if (hasGrounded)
+            {
+                animator.SetBool(GroundedId, grounded);
+            }
+
+            if (hasFreeFall)
+            {
+                animator.SetBool(FreeFallId, !grounded && verticalVelocity < freeFallVelocityThreshold);
+            }
+
+            if (hasMotionSpeed)
+            {
+                animator.SetFloat(MotionSpeedId, normalizedSpeed, speedDampTime, Time.deltaTime);
             }
         }
 
-        /// <summary>
-        /// 런타임에 존재하는 파라미터만 갱신해, 빈 Controller에도 안전하게 동작합니다.
-        /// </summary>
         private void CacheParameterAvailability()
         {
-            hasSpeedParameter = false;
-            hasIsGroundedParameter = false;
+            hasSpeed = false;
+            hasIsGrounded = false;
+            hasVerticalVelocity = false;
+            hasGrounded = false;
+            hasFreeFall = false;
+            hasMotionSpeed = false;
 
             if (animator == null)
             {
                 return;
             }
 
-            foreach (AnimatorControllerParameter parameter in animator.parameters)
+            foreach (AnimatorControllerParameter p in animator.parameters)
             {
-                if (parameter.type == AnimatorControllerParameterType.Float && parameter.nameHash == SpeedId)
-                {
-                    hasSpeedParameter = true;
-                }
-
-                if (parameter.type == AnimatorControllerParameterType.Bool && parameter.nameHash == IsGroundedId)
-                {
-                    hasIsGroundedParameter = true;
-                }
-
-                if (parameter.type == AnimatorControllerParameterType.Float && parameter.nameHash == VerticalVelocityId)
-                {
-                    hasVerticalVelocityParameter = true;
-                }
+                if (p.type == AnimatorControllerParameterType.Float && p.nameHash == SpeedId) hasSpeed = true;
+                if (p.type == AnimatorControllerParameterType.Bool && p.nameHash == IsGroundedId) hasIsGrounded = true;
+                if (p.type == AnimatorControllerParameterType.Float && p.nameHash == VerticalVelocityId) hasVerticalVelocity = true;
+                if (p.type == AnimatorControllerParameterType.Bool && p.nameHash == GroundedId) hasGrounded = true;
+                if (p.type == AnimatorControllerParameterType.Bool && p.nameHash == FreeFallId) hasFreeFall = true;
+                if (p.type == AnimatorControllerParameterType.Float && p.nameHash == MotionSpeedId) hasMotionSpeed = true;
             }
         }
     }
